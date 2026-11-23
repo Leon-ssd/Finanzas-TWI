@@ -118,14 +118,14 @@ def verify(configured):
             assert status == 302 and headers["Location"] == f"/auth/dev3?error={provider}-failed"
             status, headers, _ = request(callback + "?code=not-a-real-code&state=tampered")
             assert status == 302 and headers["Location"] == f"/auth/dev3?error={provider}-failed"
-            assert "__Host-Finanzas.Session=" not in headers.get("Set-Cookie", "")
+            assert ".FinanzasPersonales.Auth=" not in headers.get("Set-Cookie", "")
             assert json.loads(request("/auth/dev3/session")[2])["authenticated"] is False
 
         assert request("/auth/dev3/logout", {})[0] == 400
         assert request("/auth/dev3/logout")[0] == 405
         status, headers, _ = request("/auth/dev3/logout", {"__RequestVerificationToken": token})
         assert status == 302 and headers["Location"] == "/auth/dev3"
-        assert "__Host-Finanzas.Session=" in headers.get("Set-Cookie", "")
+        assert ".FinanzasPersonales.Auth=" in headers.get("Set-Cookie", "")
         assert json.loads(request("/auth/dev3/session")[2])["authenticated"] is False
         status, _, document = request("/openapi/v1.json")
         assert status == 200 and "/api/Usuario" in json.loads(document)["paths"]
