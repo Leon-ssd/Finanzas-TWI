@@ -1,5 +1,7 @@
 
 using FinanzasPersonales.Api;
+using FinanzasPersonales.Api.Authentication;
+using FinanzasPersonales.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using System.Net.Http.Headers;
@@ -21,6 +23,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<FinanzasDbContext>(options =>
     options.UseNpgsql(connectionString));
+
 
 // Registro del servicio de gestión de usuarios OAuth
 builder.Services.AddScoped<IOAuthUserService, OAuthUserService>();
@@ -179,10 +182,12 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
-builder.Services.AddControllers();
+builder.Services.AddDev3Authentication(builder.Configuration);
+builder.Services.AddAuthorization();
 
 builder.Services.AddDbContext<ApiDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -200,12 +205,12 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-
-
-
-
-
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
 
 // Habilitar archivos estáticos para la interfaz de prueba de OAuth (index.html)
 app.UseDefaultFiles();
