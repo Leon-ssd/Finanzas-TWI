@@ -1,13 +1,15 @@
-using Microsoft.AspNetCore.Http;
+using FinanzasPersonales.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FinanzasPersonales.Api
+namespace FinanzasPersonales.Api.Controllers;
+
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+public class UsuarioController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class UsuarioController : ControllerBase
-    {
-        private readonly UsuarioService _service;
+    private readonly UsuarioService _service;
 
     public UsuarioController(UsuarioService service)
     {
@@ -44,6 +46,5 @@ namespace FinanzasPersonales.Api
         {
             return BadRequest(new { message = ex.Message });
         }
-    }
     }
 }
