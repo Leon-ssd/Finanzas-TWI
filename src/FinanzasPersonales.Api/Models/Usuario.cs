@@ -1,8 +1,10 @@
-namespace FinanzasPersonales.Api.Models;
+
+﻿namespace FinanzasPersonales.Api;
 
 public class Usuario
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Id { get; set; }
+
     public string Nombre { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? PasswordHash { get; set; }
@@ -16,4 +18,5 @@ public class Usuario
     public ICollection<Transferencia> Transferencias { get; set; } = new List<Transferencia>();
     public PreferenciaUsuario? PreferenciaUsuario { get; set; }
     public ICollection<Etiqueta> Etiquetas { get; set; } = new List<Etiqueta>();
+
 }

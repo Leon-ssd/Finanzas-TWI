@@ -1,5 +1,7 @@
+
+using FinanzasPersonales.Api;
 using Microsoft.EntityFrameworkCore;
-using FinanzasPersonales.Api.Data;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,18 +16,27 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
+builder.Services.AddControllers();
+
+builder.Services.AddDbContext<ApiDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//Servicios
+builder.Services.AddScoped<UsuarioService>();
+builder.Services.AddScoped<CategoriaService>();
+builder.Services.AddScoped<CuentaService>();
+builder.Services.AddScoped<MovimientoService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
 app.MapControllers();
+
+app.UseHttpsRedirection();
 
 app.Run();

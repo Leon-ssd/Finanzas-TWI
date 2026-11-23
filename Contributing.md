@@ -84,16 +84,11 @@ Cada integrante debe implementar sus **4 tablas asignadas** siguiendo el enfoque
    git status
    git add .
    ```
-2. Crea commits claros y descriptivos siguiendo el formato `<tipo>(<alcance>): <descripción en imperativo>`:
+2. Crea commits claros y descriptivos:
    ```bash
-   git commit -m "feat(models): agregar modelos PresupuestoMensual, MetaAhorro, MovimientoRecurrente y RecordatorioPago"
-   git commit -m "feat(migrations): generar migracion AgregarTablasPlanificacion"
-   ```
-   **Otros ejemplos válidos de commits:**
-   * `feat(models): implementar Transferencia, PreferenciaUsuario, Etiqueta y MovimientoEtiqueta`
-   * `feat(migrations): generar migracion inicial para tablas base`[cite: 9, 10]
-   * `fix(config): corregir restriccion CHECK en monto de Movimiento`[cite: 5, 6]
-   * `docs(readme): registrar reparto de proveedores de inicio de sesion`
+   git commit -m "agregar modelos PresupuestoMensual, MetaAhorro, MovimientoRecurrente y RecordatorioPago"
+   git commit -m "generar migracion AgregarTablasPlanificacion"
+   ```y
 3. Trae posibles cambios recientes de `upstream/develop` antes de subir para evitar conflictos:
    ```bash
    git pull upstream develop
