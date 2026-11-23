@@ -1,54 +1,44 @@
-
-using FinanzasPersonales.Api;
-using FinanzasPersonales.Api.Authentication;
-using FinanzasPersonales.Api.Data;
-using Microsoft.EntityFrameworkCore;
-using Scalar.AspNetCore;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
+using DotNetEnv;
+using FinanzasPersonales.Api;
+using FinanzasPersonales.Api.Authentication;
+using FinanzasPersonales.Api.Data;
+using FinanzasPersonales.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.EntityFrameworkCore;
-using FinanzasPersonales.Api.Data;
-using FinanzasPersonales.Api.Services;
+using Scalar.AspNetCore;
 
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuración de PostgreSQL y DbContext
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Host=localhost;Port=5432;Database=finanzas_db;Username=postgres;Password=postgres";
 
-builder.Services.AddDbContext<FinanzasDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-
-// Registro del servicio de gestión de usuarios OAuth
 builder.Services.AddScoped<IOAuthUserService, OAuthUserService>();
 
-// ------------------------------------------------------------------------------
-// Configuración de Autenticación OAuth 2.0 (Twitch y Spotify - Integrante 2)
-// ------------------------------------------------------------------------------
-var twitchClientId = builder.Configuration["AUTH__TWITCH__CLIENTID"] 
-    ?? builder.Configuration["Auth:Twitch:ClientId"] 
+var twitchClientId = builder.Configuration["AUTH__TWITCH__CLIENTID"]
+    ?? builder.Configuration["Auth:Twitch:ClientId"]
     ?? "placeholder_twitch_client_id";
-var twitchClientSecret = builder.Configuration["AUTH__TWITCH__CLIENTSECRET"] 
-    ?? builder.Configuration["Auth:Twitch:ClientSecret"] 
+var twitchClientSecret = builder.Configuration["AUTH__TWITCH__CLIENTSECRET"]
+    ?? builder.Configuration["Auth:Twitch:ClientSecret"]
     ?? "placeholder_twitch_client_secret";
-var twitchCallbackPath = builder.Configuration["AUTH__TWITCH__CALLBACKPATH"] 
-    ?? builder.Configuration["Auth:Twitch:CallbackPath"] 
+var twitchCallbackPath = builder.Configuration["AUTH__TWITCH__CALLBACKPATH"]
+    ?? builder.Configuration["Auth:Twitch:CallbackPath"]
     ?? "/signin-twitch";
 
-var spotifyClientId = builder.Configuration["AUTH__SPOTIFY__CLIENTID"] 
-    ?? builder.Configuration["Auth:Spotify:ClientId"] 
+var spotifyClientId = builder.Configuration["AUTH__SPOTIFY__CLIENTID"]
+    ?? builder.Configuration["Auth:Spotify:ClientId"]
     ?? "placeholder_spotify_client_id";
-var spotifyClientSecret = builder.Configuration["AUTH__SPOTIFY__CLIENTSECRET"] 
-    ?? builder.Configuration["Auth:Spotify:ClientSecret"] 
+var spotifyClientSecret = builder.Configuration["AUTH__SPOTIFY__CLIENTSECRET"]
+    ?? builder.Configuration["Auth:Spotify:ClientSecret"]
     ?? "placeholder_spotify_client_secret";
-var spotifyCallbackPath = builder.Configuration["AUTH__SPOTIFY__CALLBACKPATH"] 
-    ?? builder.Configuration["Auth:Spotify:CallbackPath"] 
+var spotifyCallbackPath = builder.Configuration["AUTH__SPOTIFY__CALLBACKPATH"]
+    ?? builder.Configuration["Auth:Spotify:CallbackPath"]
     ?? "/signin-spotify";
 
 builder.Services.AddAuthentication(options =>
@@ -60,10 +50,11 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
-    options.Cookie.Name = "FinanzasPersonales.Auth";
+    options.Cookie.Name = ".FinanzasPersonales.Auth";
+    options.Cookie.HttpOnly = true;
     options.LoginPath = "/";
     options.LogoutPath = "/api/auth/logout";
-    options.ExpireTimeSpan = TimeSpan.FromHours(24);
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
     options.Events.OnRedirectToLogin = context =>
     {
@@ -189,13 +180,19 @@ builder.Services.AddOpenApi();
 builder.Services.AddDev3Authentication(builder.Configuration);
 builder.Services.AddAuthorization();
 
-builder.Services.AddDbContext<ApiDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<FinanzasDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
-//Servicios
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession();
+builder.Services.AddHttpClient();
+
 builder.Services.AddScoped<UsuarioService>();
 builder.Services.AddScoped<CategoriaService>();
 builder.Services.AddScoped<CuentaService>();
 builder.Services.AddScoped<MovimientoService>();
+builder.Services.AddScoped<DiscordAuthService>();
+builder.Services.AddScoped<GoogleAuthService>();
 
 var app = builder.Build();
 
@@ -206,16 +203,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-
-
-// Habilitar archivos estáticos para la interfaz de prueba de OAuth (index.html)
 app.UseDefaultFiles();
 app.UseStaticFiles();
-
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 

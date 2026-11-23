@@ -1,13 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FinanzasPersonales.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanzasPersonales.Api;
 
 public class CategoriaService
 {
     private static readonly string[] TiposValidos = { "ingreso", "gasto" };
-    private readonly ApiDbContext _db;
+    private readonly FinanzasDbContext _db;
 
-    public CategoriaService(ApiDbContext db)
+    public CategoriaService(FinanzasDbContext db)
     {
         _db = db;
     }

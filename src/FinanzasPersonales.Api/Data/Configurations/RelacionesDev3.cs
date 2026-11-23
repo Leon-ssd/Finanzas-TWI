@@ -3,11 +3,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FinanzasPersonales.Api.Data.Configurations;
 
-// No se declaran entidades sustitutas ni tipos sombra para las tablas del líder.
 internal static class RelacionesDev3
 {
     public static void ConEntidadExistente<T>(
-        EntityTypeBuilder<T> builder, string nombreEntidad, string claveForanea)
+        EntityTypeBuilder<T> builder, string nombreEntidad, string claveForanea,
+        string navegacion = null)
         where T : class
     {
         var principal = builder.Metadata.Model.GetEntityTypes()
@@ -21,9 +21,15 @@ internal static class RelacionesDev3
                 "Integre las entidades y migraciones base del líder; no genere una migración parcial.");
         }
 
-        builder.HasOne(principal.Name)
-            .WithMany()
-            .HasForeignKey(claveForanea)
-            .OnDelete(DeleteBehavior.Restrict);
+        if (navegacion is not null)
+            builder.HasOne(navegacion, principal.Name)
+                   .WithMany()
+                   .HasForeignKey(claveForanea)
+                   .OnDelete(DeleteBehavior.Restrict);
+        else
+            builder.HasOne(principal.Name)
+                   .WithMany()
+                   .HasForeignKey(claveForanea)
+                   .OnDelete(DeleteBehavior.Restrict);
     }
-}
+}   

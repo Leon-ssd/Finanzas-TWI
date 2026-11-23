@@ -10,4 +10,6 @@ public class MetaAhorro
     public decimal MontoAhorrado { get; set; } = 0m;
     public DateOnly? FechaLimite { get; set; }
     public string Estado { get; set; } = "activa";
+
+    public Usuario Usuario { get; set; } 
 }

@@ -22,25 +22,42 @@ public class AuthController : ControllerBase
             });
         }
 
+        var usuarioId = User.FindFirst("usuario_id")?.Value
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var nombre = User.Identity.Name
+            ?? User.FindFirstValue(ClaimTypes.Name)
+            ?? string.Empty;
+
+        var email = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+        var proveedor = User.FindFirst("provider")?.Value ?? "Local";
+
         return Ok(new
         {
             isAuthenticated = true,
-            usuarioId = User.FindFirst("usuario_id")?.Value,
-            nombre = User.Identity.Name,
-            email = User.FindFirst(ClaimTypes.Email)?.Value,
-            proveedor = User.FindFirst("provider")?.Value ?? "Local"
+            usuarioId,
+            nombre,
+            email,
+            proveedor
         });
     }
 
+    [Authorize]
     [HttpPost("logout")]
-    [HttpGet("logout")]
     public async Task<IActionResult> Logout([FromQuery] string returnUrl = "/")
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        if (HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.ISessionFeature>() != null)
+        {
+            HttpContext.Session.Clear();
+        }
+
         if (Request.Headers.Accept.ToString().Contains("application/json"))
         {
             return Ok(new { mensaje = "Sesión cerrada correctamente." });
         }
+
         return Redirect(returnUrl);
     }
 }

@@ -1,13 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FinanzasPersonales.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanzasPersonales.Api;
 
 public class MovimientoService
 {
     private static readonly string[] TiposValidos = { "ingreso", "gasto" };
-    private readonly ApiDbContext _db;
+    private readonly FinanzasDbContext _db;
 
-    public MovimientoService(ApiDbContext db)
+    public MovimientoService(FinanzasDbContext db)
     {
         _db = db;
     }

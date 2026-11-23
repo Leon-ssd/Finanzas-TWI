@@ -28,7 +28,7 @@ public class MetaAhorroConfiguration : IEntityTypeConfiguration<MetaAhorro>
         builder.HasIndex(x => x.UsuarioId).HasDatabaseName("ix_meta_ahorro_usuario_id");
         builder.HasIndex(x => x.CuentaVinculadaId).HasDatabaseName("ix_meta_ahorro_cuenta_vinculada_id");
 
-        RelacionesDev3.ConEntidadExistente(builder, "Usuario", nameof(MetaAhorro.UsuarioId));
+        RelacionesDev3.ConEntidadExistente(builder, "Usuario", nameof(MetaAhorro.UsuarioId), "Usuario");
         RelacionesDev3.ConEntidadExistente(builder, "Cuenta", nameof(MetaAhorro.CuentaVinculadaId));
     }
 }

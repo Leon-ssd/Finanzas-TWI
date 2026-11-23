@@ -1,6 +1,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using FinanzasPersonales.Api.Models;
+using FinanzasPersonales.Api.Data.Configurations;
 
 namespace FinanzasPersonales.Api.Data;
 

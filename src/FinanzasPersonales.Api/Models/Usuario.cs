@@ -1,5 +1,7 @@
+﻿
+using FinanzasPersonales.Api.Models;
 
-﻿namespace FinanzasPersonales.Api;
+namespace FinanzasPersonales.Api;
 
 public class Usuario
 {
