@@ -84,7 +84,7 @@ Registrado **antes de programar**. Cada integrante implementa **2 botones funcio
 | :--- | :--- | :--- |
 | **Integrante 1** (`@usuario-dev1`) | Discord | Google |
 | **Integrante 2** (`@usuario-dev2`) | Twitch | Spotify |
-| **Integrante 3** (`@usuario-dev3`) |||
+| **Integrante 3** (`@usuario-dev3`) | Dropbox | Microsoft |
 
 > Las credenciales de cada proveedor y las URL de retorno se configuran mediante **variables de entorno** (no se escriben credenciales en el código ni se suben al repositorio)[cite: 10].
 
@@ -101,6 +101,118 @@ Registrado **antes de programar**. Cada integrante implementa **2 botones funcio
    ```bash
    dotnet run --project src/FinanzasPersonales.Api
    ```
+
+## Login externo Dev3 — Dropbox y Microsoft (Punto 2)
+
+En esta versión no están integrados los controladores de Google, Discord, Twitch ni Spotify, ni había un esquema de autenticación local. Dev3 incorpora una única cookie local `Cookies` para compartir con los futuros proveedores; esquemas externos `Dev3.Dropbox` y `Dev3.Microsoft`.
+
+La página mínima es **https://localhost:7133/auth/dev3**. El puerto 7133 procede del perfil `https` existente en `Properties/launchSettings.json`.
+
+| Operación | Ruta |
+| --- | --- |
+| Página y botones | `GET /auth/dev3` |
+| Iniciar Dropbox | `POST /auth/dropbox/login` |
+| Callback Dropbox (middleware OAuth) | `/auth/dropbox/callback` |
+| Iniciar Microsoft | `POST /auth/microsoft/login` |
+| Callback Microsoft (middleware OIDC, `form_post`) | `/auth/microsoft/callback` |
+| Consultar identidad local | `GET /auth/dev3/session` |
+| Cerrar sesión local | `POST /auth/dev3/logout` |
+
+Los tres POST de la interfaz exigen token antiforgery. Los callbacks los atienden los middleware oficiales, no acciones MVC manuales. No usar los callbacks como botones de login.
+
+### Configuración local sin secretos versionados
+
+1. Copiar `.env.example` a `.env` y completar las credenciales **solo en ese archivo local**. Las credenciales vacías de la plantilla son intencionales: no son aplicaciones OAuth ficticias utilizables. Entrecomillar los valores de secretos si contienen caracteres de shell.
+2. Configurar estas variables:
+
+   | Variable | Valor |
+   | --- | --- |
+   | `Authentication__Dropbox__ClientId` | App key de Dropbox |
+   | `Authentication__Dropbox__ClientSecret` | App secret de Dropbox |
+   | `Authentication__Dropbox__CallbackPath` | `/auth/dropbox/callback` |
+   | `Authentication__Microsoft__ClientId` | Application (client) ID |
+   | `Authentication__Microsoft__ClientSecret` | **Valor** del secreto, no Secret ID |
+   | `Authentication__Microsoft__TenantId` | `common` para personales y organizaciones; `consumers` solo personales; `organizations` solo organizaciones; o GUID de tenant |
+   | `Authentication__Microsoft__CallbackPath` | `/auth/microsoft/callback` |
+
+3. .NET **no carga `.env` automáticamente**. Desde la raíz, en Bash, cargar el archivo propio y ejecutar:
+
+   ```bash
+   # Solo la primera vez, si aún no existe tu archivo local:
+   cp .env.example .env
+   chmod 600 .env
+   # Editar .env antes de continuar. No sobrescribirlo con la plantilla después.
+   set -a
+   source .env
+   set +a
+
+   dotnet dev-certs https --trust
+   dotnet restore src/FinanzasPersonales.Api
+   dotnet build src/FinanzasPersonales.Api
+   dotnet run --project src/FinanzasPersonales.Api --launch-profile https
+   ```
+
+   Si Linux solicita pasos adicionales para confiar el certificado en el navegador, seguir las instrucciones de `dotnet dev-certs`. No desactivar la validación TLS de los proveedores. No hace falta aplicar migraciones para probar estos botones.
+
+Sin ClientId y ClientSecret el proveedor no se registra: la página lo indica y el botón muestra un aviso controlado. Reiniciar la API al cambiar las variables. Los callbacks personalizados deben permanecer bajo `/auth/dropbox/` y `/auth/microsoft/`, ser distintos de `login` y actualizarse también en los portales.
+
+### Registrar Dropbox
+
+1. Entrar en [Dropbox App Console](https://www.dropbox.com/developers/apps) y crear una aplicación con **Scoped access**. Elegir **App folder** si se solicita acceso a contenido: este login no necesita permisos de archivos.
+2. En **Permissions**, habilitar únicamente `account_info.read` y guardar los cambios.
+3. En **Settings → OAuth 2 → Redirect URIs**, agregar exactamente:
+   **`https://localhost:7133/auth/dropbox/callback`**.
+4. Se usa Authorization Code con PKCE S256. Si el panel presenta el ajuste **Allow public clients** que habilita PKCE, activarlo. El backend sigue siendo confidencial y conserva el App secret solo en el servidor. No seleccionar un flujo implícito en la aplicación.
+5. Copiar **App key** como ClientId y **App secret** como ClientSecret al entorno local. No usar el botón de generar un token como sustituto del login.
+6. Si la aplicación está en modo desarrollo, habilitar los usuarios de prueba que permita el panel antes de probar con compañeros.
+
+El middleware intercambia el código por HTTPS y consulta `POST https://api.dropboxapi.com/2/users/get_current_account` con el token en `Authorization: Bearer`. Solo se pide identidad; no acceso offline ni refresh tokens.
+
+### Registrar Microsoft
+
+1. Entrar en [Microsoft Entra admin center](https://entra.microsoft.com/) → **App registrations → New registration**. Es necesario tener acceso a un directorio con permiso para registrar aplicaciones; si la cuenta no lo permite, solicitarlo al administrador.
+2. Para `TenantId=common`, elegir **Accounts in any organizational directory and personal Microsoft accounts**. Para `consumers`, elegir el público de cuentas personales. El público del registro y TenantId deben coincidir.
+3. Agregar plataforma **Web**, no SPA, y registrar exactamente:
+   **`https://localhost:7133/auth/microsoft/callback`**.
+4. Copiar **Application (client) ID**. En **Certificates & secrets**, crear un secreto y copiar su **Value** inmediatamente; se muestra una sola vez. Guardarlo solo en el entorno y controlar su caducidad.
+5. No habilitar implicit grant ni public client flows: se usa **Authorization Code + PKCE** desde el backend. Se solicitan únicamente `openid profile email`; no acceso offline ni permisos a archivos de Graph.
+6. Los tenants institucionales pueden requerir consentimiento administrativo conforme a sus políticas.
+
+El middleware OIDC valida state/correlación, nonce, firma, audiencia y vigencia. El emisor se valida con `AadIssuerValidator`, biblioteca oficial de Microsoft compatible con emisores por tenant. No se desactiva la validación de emisor para aceptar cuentas personales.
+
+### Sesión y límites de seguridad
+
+- Una sola cookie `__Host-Finanzas.Session`, Secure, HttpOnly, SameSite=Lax y duración absoluta de 30 minutos, sin persistencia ni renovación deslizante.
+- Correlación y nonce con cookies Secure/HttpOnly; los POST locales tienen protección antiforgery.
+- No se guardan tokens en la cookie (`SaveTokens=false`) ni se devuelven al navegador. Los diagnósticos internos de los handlers OAuth/OIDC se silencian para evitar registrar respuestas remotas; los fallos registran únicamente un aviso sanitizado.
+- Errores y cancelaciones muestran mensajes fijos sin reflejar textos remotos. La página usa escape HTML de Razor y no guarda la identidad en caché.
+- La identidad estable es proveedor + account_id para Dropbox, y emisor + sub verificados para Microsoft. El correo es opcional y solo informativo.
+- Ya existe `Usuario`, pero no una arquitectura de vinculación externa. **No se crean ni vinculan usuarios locales**, no se modifica su esquema y no se identifica una cuenta por correo. El identificador de sesión externo no debe usarse como `UsuarioId` de las tablas financieras.
+- Cerrar sesión elimina la cookie local; no revoca autorizaciones ni cierra la sesión del proveedor. Los CRUD existentes conservan su comportamiento: este aporte no implementa su autorización.
+- `Program.cs` conserva los contextos, servicios, Scalar y controladores existentes. Los imports globales añadidos al `.csproj` resuelven los namespaces faltantes de la integración recibida, sin cambiar modelos.
+
+### Prueba manual y evidencias reales
+
+Comprobación automatizada sin credenciales reales (detener antes la API para liberar el puerto 7133):
+
+```bash
+dotnet restore src/FinanzasPersonales.Api
+dotnet build src/FinanzasPersonales.Api
+python3 tests/verify_dev3_auth.py
+```
+
+El script inicia y detiene su propia API, comprueba la página, sesión anónima, CSRF, logout, callbacks alterados/reutilizados y redirecciones oficiales con IDs deliberadamente ficticios. No canjea códigos ni autentica usuarios. La prueba de Microsoft requiere acceso a su metadata OIDC pública. Solo su cliente local omite la confianza del certificado de desarrollo; no altera TLS del backend a los proveedores.
+
+Para **cada proveedor**, con credenciales válidas y la API ejecutándose mediante HTTPS:
+
+1. Abrir `/auth/dev3` y pulsar su botón.
+2. Confirmar que se navega al dominio oficial de Dropbox o `login.microsoftonline.com` y autenticarse/consentir.
+3. Regresar automáticamente a `/auth/dev3` y comprobar proveedor, identificador y nombre; correo cuando esté disponible.
+4. Abrir `/auth/dev3/session` en el mismo navegador: debe indicar `authenticated: true`.
+5. Volver a la página, pulsar **Cerrar sesión** y recargar `/auth/dev3/session`: debe indicar `authenticated: false`.
+6. Repetir cancelando el consentimiento. Probar también el callback sin state o con un state alterado: no debe crearse sesión.
+
+Capturar la compilación, botones, dominio oficial, identidad de retorno y sesión inactiva después de salir. **No capturar secretos, cookies, tokens, códigos de autorización ni URLs completas con state/code**. El login real solo se considera verificado tras completar ambos ciclos en navegador con aplicaciones registradas; compilar o comprobar redirecciones no demuestra autenticación real.
 
 ## Documentación de contribución
 
