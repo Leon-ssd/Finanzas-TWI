@@ -83,7 +83,7 @@ Registrado **antes de programar**. Cada integrante implementa **2 botones funcio
 | Integrante | Proveedor fácil | Proveedor medio o difícil |
 | :--- | :--- | :--- |
 | **Integrante 1** (`@usuario-dev1`) | Discord | Google |
-| **Integrante 2** (`@usuario-dev2`) |||
+| **Integrante 2** (`@usuario-dev2`) | Twitch | Spotify |
 | **Integrante 3** (`@usuario-dev3`) |||
 
 > Las credenciales de cada proveedor y las URL de retorno se configuran mediante **variables de entorno** (no se escriben credenciales en el código ni se suben al repositorio)[cite: 10].

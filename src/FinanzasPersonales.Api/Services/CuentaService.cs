@@ -1,13 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FinanzasPersonales.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanzasPersonales.Api;
 
 public class CuentaService
 {
     private static readonly string[] TiposValidos = { "efectivo", "banco", "billetera_digital" };
-    private readonly ApiDbContext _db;
+    private readonly FinanzasDbContext _db;
 
-    public CuentaService(ApiDbContext db)
+    public CuentaService(FinanzasDbContext db)
     {
         _db = db;
     }

@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using System.Text.Json;
+using FinanzasPersonales.Api.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -8,12 +9,12 @@ namespace FinanzasPersonales.Api;
 
 public class GoogleAuthService
 {
-    private readonly ApiDbContext _db;
+    private readonly FinanzasDbContext _db;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _config;
 
     public GoogleAuthService(
-        ApiDbContext db,
+        FinanzasDbContext db,
         IHttpClientFactory httpClientFactory,
         IConfiguration config)
     {

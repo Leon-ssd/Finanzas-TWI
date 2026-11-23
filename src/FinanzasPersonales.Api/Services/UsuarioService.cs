@@ -1,12 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FinanzasPersonales.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanzasPersonales.Api;
 
 public class UsuarioService
 {
-    private readonly ApiDbContext _db;
+    private readonly FinanzasDbContext _db;
 
-    public UsuarioService(ApiDbContext db)
+    public UsuarioService(FinanzasDbContext db)
     {
         _db = db;
     }

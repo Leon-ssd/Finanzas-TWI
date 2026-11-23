@@ -4,18 +4,19 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
+using FinanzasPersonales.Api.Data;
 
 namespace FinanzasPersonales.Api;
 
 public class DiscordAuthService
 {
 
-    private readonly ApiDbContext _db;
+    private readonly FinanzasDbContext _db;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _config;
 
     public DiscordAuthService(
-        ApiDbContext db,
+        FinanzasDbContext db,
         IHttpClientFactory httpClientFactory,
         IConfiguration config)
     {
