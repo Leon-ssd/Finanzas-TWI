@@ -1,3 +1,4 @@
+
 ﻿namespace FinanzasPersonales.Api;
 
 public class Movimiento
@@ -17,4 +18,6 @@ public class Movimiento
     public Usuario Usuario { get; set; } = null!;
     public Cuenta Cuenta { get; set; } = null!;
     public Categoria Categoria { get; set; } = null!;
+    public ICollection<MovimientoEtiqueta> MovimientoEtiquetas { get; set; } = new List<MovimientoEtiqueta>();
+
 }

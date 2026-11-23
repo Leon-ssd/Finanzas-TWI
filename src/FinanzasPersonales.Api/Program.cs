@@ -1,3 +1,4 @@
+
 using FinanzasPersonales.Api;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -5,7 +6,14 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "Host=localhost;Port=5432;Database=finanzas_db;Username=postgres;Password=postgresql";
+
+builder.Services.AddDbContext<FinanzasDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
 builder.Services.AddControllers();

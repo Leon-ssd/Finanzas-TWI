@@ -1,3 +1,4 @@
+
 ﻿namespace FinanzasPersonales.Api;
 
 public class Categoria
@@ -11,5 +12,6 @@ public class Categoria
 
     // Propiedades de navegación
     public Usuario Usuario { get; set; } = null!;
+
     public ICollection<Movimiento> Movimientos { get; set; } = new List<Movimiento>();
 }

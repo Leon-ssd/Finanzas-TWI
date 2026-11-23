@@ -1,3 +1,4 @@
+
 ﻿namespace FinanzasPersonales.Api;
 
 public class Cuenta
@@ -13,4 +14,7 @@ public class Cuenta
     // Propiedades de navegación
     public Usuario Usuario { get; set; } = null!;
     public ICollection<Movimiento> Movimientos { get; set; } = new List<Movimiento>();
+    public ICollection<Transferencia> TransferenciasOrigen { get; set; } = new List<Transferencia>();
+    public ICollection<Transferencia> TransferenciasDestino { get; set; } = new List<Transferencia>();
+
 }
