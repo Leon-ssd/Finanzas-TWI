@@ -104,7 +104,7 @@ Registrado **antes de programar**. Cada integrante implementa **2 botones funcio
 
 ## Login externo Dev3 — Dropbox y Microsoft (Punto 2)
 
-En esta versión no están integrados los controladores de Google, Discord, Twitch ni Spotify, ni había un esquema de autenticación local. Dev3 incorpora una única cookie local `Cookies` para compartir con los futuros proveedores; esquemas externos `Dev3.Dropbox` y `Dev3.Microsoft`.
+Los controladores de los seis proveedores están integrados. Dev3 reutiliza el esquema local compartido `Cookies`, registrado una sola vez en `Program.cs`; sus esquemas externos son `Dev3.Dropbox` y `Dev3.Microsoft`. Los controladores de autenticación de los demás integrantes no se modifican en el aporte del Punto 3.
 
 La página mínima es **https://localhost:7133/auth/dev3**. El puerto 7133 procede del perfil `https` existente en `Properties/launchSettings.json`.
 
@@ -135,7 +135,7 @@ Los tres POST de la interfaz exigen token antiforgery. Los callbacks los atiende
    | `Authentication__Microsoft__TenantId` | `common` para personales y organizaciones; `consumers` solo personales; `organizations` solo organizaciones; o GUID de tenant |
    | `Authentication__Microsoft__CallbackPath` | `/auth/microsoft/callback` |
 
-3. .NET **no carga `.env` automáticamente**. Desde la raíz, en Bash, cargar el archivo propio y ejecutar:
+3. La integración usa `DotNetEnv.Env.Load()` para cargar `.env` desde el directorio de ejecución. Para evitar depender de ese directorio, desde la raíz se pueden exportar explícitamente las variables propias en Bash y ejecutar:
 
    ```bash
    # Solo la primera vez, si aún no existe tu archivo local:
@@ -182,12 +182,12 @@ El middleware OIDC valida state/correlación, nonce, firma, audiencia y vigencia
 
 ### Sesión y límites de seguridad
 
-- Una sola cookie `__Host-Finanzas.Session`, Secure, HttpOnly, SameSite=Lax y duración absoluta de 30 minutos, sin persistencia ni renovación deslizante.
+- Una sola cookie compartida `.FinanzasPersonales.Auth`, según la configuración ya integrada de `Program.cs` (HttpOnly, 8 horas y renovación deslizante). Dev3 no vuelve a registrar `Cookies` ni altera las sesiones de los compañeros. Ejecutar siempre mediante HTTPS.
 - Correlación y nonce con cookies Secure/HttpOnly; los POST locales tienen protección antiforgery.
 - No se guardan tokens en la cookie (`SaveTokens=false`) ni se devuelven al navegador. Los diagnósticos internos de los handlers OAuth/OIDC se silencian para evitar registrar respuestas remotas; los fallos registran únicamente un aviso sanitizado.
 - Errores y cancelaciones muestran mensajes fijos sin reflejar textos remotos. La página usa escape HTML de Razor y no guarda la identidad en caché.
 - La identidad estable es proveedor + account_id para Dropbox, y emisor + sub verificados para Microsoft. El correo es opcional y solo informativo.
-- Ya existe `Usuario`, pero no una arquitectura de vinculación externa. **No se crean ni vinculan usuarios locales**, no se modifica su esquema y no se identifica una cuenta por correo. El identificador de sesión externo no debe usarse como `UsuarioId` de las tablas financieras.
+- El Punto 3 añade una vinculación explícita en configuración del servidor con usuarios locales existentes, sin modificar el esquema de `Usuario` ni crear usuarios automáticamente. No se vincula por correo. El identificador externo nunca se usa directamente como `UsuarioId` financiero.
 - Cerrar sesión elimina la cookie local; no revoca autorizaciones ni cierra la sesión del proveedor. Los CRUD existentes conservan su comportamiento: este aporte no implementa su autorización.
 - `Program.cs` conserva los contextos, servicios, Scalar y controladores existentes. Los imports globales añadidos al `.csproj` resuelven los namespaces faltantes de la integración recibida, sin cambiar modelos.
 
@@ -213,6 +213,105 @@ Para **cada proveedor**, con credenciales válidas y la API ejecutándose median
 6. Repetir cancelando el consentimiento. Probar también el callback sin state o con un state alterado: no debe crearse sesión.
 
 Capturar la compilación, botones, dominio oficial, identidad de retorno y sesión inactiva después de salir. **No capturar secretos, cookies, tokens, códigos de autorización ni URLs completas con state/code**. El login real solo se considera verificado tras completar ambos ciclos en navegador con aplicaciones registradas; compilar o comprobar redirecciones no demuestra autenticación real.
+
+## Controladores Dev3 — Punto 3
+
+### Doce endpoints protegidos
+
+Cada recurso tiene `POST /api/{recurso}`, `GET /api/{recurso}` y `GET /api/{recurso}/{id}`:
+
+- `presupuestos-mensuales`
+- `metas-ahorro`
+- `movimientos-recurrentes`
+- `recordatorios-pago`
+
+Todos usan `[Authorize]` con la cookie existente. Sin sesión devuelven **401**, no una redirección. Se filtra siempre por el usuario local; un ID inexistente o ajeno devuelve **404**. Los DTO de creación no admiten `UsuarioId` ni otros campos desconocidos. Las lecturas usan `AsNoTracking`, las operaciones son asíncronas y aceptan cancelación.
+
+Los POST responden **201 + Location**, errores de datos/relaciones **400** y presupuestos duplicados **409** (incluido el índice único para solicitudes concurrentes). Los importes deben caber en `numeric(14,2)` sin redondeo silencioso. Se conserva `Año`/`año`, nombre existente del presupuesto, con rango 1–9999; mes 1–12. Las recurrencias semanales usan 1–7 y las demás 1–28. Las fechas obligatorias no pueden omitirse ni ser `0001-01-01`; se permiten fechas históricas. No se generan movimientos ni se alteran saldos.
+
+### Vincular las identidades reales sin modificar tablas ni OAuth
+
+Dropbox/Microsoft emiten una identidad externa, **no un Guid local**. El servicio OAuth integrado de otros proveedores usa correo para vincular; Dev3 no lo reutiliza ni modifica. Para estos cuatro controladores se utiliza una lista explícita administrada en el servidor:
+
+1. Completar un login real de Dropbox en `/auth/dev3`.
+2. Consultar `/auth/dev3/session` y obtener `provider` e `id`. Ese `id` incluye el identificador estable del proveedor, no un correo.
+3. Un administrador/responsable debe verificar la pertenencia y seleccionar un `Usuario.Id` **real, existente y activo**, sin deducirlo solo del correo.
+4. Configurar en el entorno local no versionado:
+
+   ```text
+   Dev3__VinculosIdentidad__0__Proveedor=Dropbox
+   Dev3__VinculosIdentidad__0__IdentificadorExterno='IDENTIFICADOR_REAL_DE_LA_SESION'
+   Dev3__VinculosIdentidad__0__UsuarioId=GUID_LOCAL_REAL
+   ```
+
+5. Repetir para Microsoft con índice `1`, proveedor `Microsoft`, `id` completo de su sesión (`emisor|sub`) y su Guid local verificado. Solo si ambas identidades pertenecen realmente a la misma persona pueden apuntar al mismo usuario local.
+6. Exportar las variables y reiniciar la API. No enviar esta configuración en solicitudes HTTP. `.env.example` incluye las claves comentadas, sin usuarios fijos ni ficticios.
+
+El filtro `AccesoDev3Filter` coteja el proveedor y el ID de la cookie autenticada con la configuración del servidor, verifica en PostgreSQL que el usuario siga activo y obtiene de allí el propietario para las cuatro acciones. Ignora headers o claims arbitrarios como `usuario_id` para vincular estos proveedores.
+
+Si falta el vínculo, la sesión está autenticada pero no tiene autorización financiera: **403**. Usuario local inactivo/inexistente: **403**. Base no disponible o sin esquema: **503**, sin devolver detalles de conexión. No existe un endpoint público para autoasignarse usuarios locales. Una sesión de otro proveedor tampoco obtiene acceso por coincidencia de correo.
+
+### PostgreSQL y migraciones
+
+No se añaden entidades, contextos, migraciones ni tablas al esquema de la aplicación en esta etapa. Esta rama no contiene migraciones/snapshot previos versionados. El responsable de integración debe proporcionar la base migrada con las entidades existentes antes de la prueba real; no usar `EnsureCreated()` ni ejecutar una migración inicial que mezcle aportes sin revisión.
+
+La prueba de la conexión versionada encontró un servidor local disponible, pero rechazó la contraseña. No se cambian esas credenciales ni la base de desarrollo. Configurar `ConnectionStrings__DefaultConnection` con valores locales válidos y verificar que las tablas ya existan.
+
+Para permitir que EF construya su modelo, se corrigió en `RelacionesDev3` la selección/orden de argumentos de `HasOne`: la sobrecarga genérica de un solo string lo interpretaba como navegación CLR. Es una corrección del mapeo previsto, no un cambio de esquema de otros integrantes.
+
+### Scalar, cookies y CSRF
+
+Abrir `/scalar/v1` mediante el mismo origen HTTPS después del login. Las doce operaciones aparecen en `/openapi/v1.json`. Los POST usan la cookie compartida y además requieren el header **`RequestVerificationToken`**, mostrado como parámetro en Scalar.
+
+Obtener un token después de iniciar sesión, desde la consola del navegador en el mismo origen:
+
+```javascript
+const pagina = await fetch('/auth/dev3', { credentials: 'same-origin' }).then(r => r.text());
+const doc = new DOMParser().parseFromString(pagina, 'text/html');
+const csrf = doc.querySelector('input[name="__RequestVerificationToken"]').value;
+```
+
+No publicar ese token ni la cookie. Copiar `csrf` al parámetro de header en Scalar, o realizar un POST desde la misma consola:
+
+```javascript
+const respuesta = await fetch('/api/metas-ahorro', {
+  method: 'POST',
+  credentials: 'same-origin',
+  headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrf },
+  body: JSON.stringify({ nombre: 'Ahorro personal', montoObjetivo: 500, montoAhorrado: 0 })
+});
+console.log(respuesta.status, await respuesta.json());
+```
+
+Ejemplos de cuerpos para los otros recursos (reemplazar IDs por registros propios existentes):
+
+```json
+{"categoriaId":"GUID_CATEGORIA_GASTO_PROPIA","año":2026,"mes":11,"montoLimite":500}
+```
+
+```json
+{"cuentaId":"GUID_CUENTA_PROPIA","categoriaId":"GUID_CATEGORIA_GASTO_PROPIA","tipo":"gasto","montoEstimado":80,"concepto":"Suscripción","frecuencia":"mensual","diaEjecucion":20,"proximaFecha":"2026-12-20","activo":true}
+```
+
+```json
+{"titulo":"Pago pendiente","montoEstimado":80,"fechaVencimiento":"2026-12-20"}
+```
+
+En metas, `cuentaVinculadaId` es opcional. En recordatorios, `movimientoRecurrenteId` es opcional y, cuando se indica, debe pertenecer al mismo usuario. El token CSRF debe obtenerse de nuevo al cambiar la identidad/sesión.
+
+### Pruebas automatizadas y evidencias del Punto 3
+
+```bash
+dotnet restore src/FinanzasPersonales.Api
+dotnet build src/FinanzasPersonales.Api
+python3 tests/verify_dev3_controllers.py
+```
+
+La prueba requiere SDK .NET 10, certificado HTTPS de desarrollo y los binarios locales PostgreSQL (`initdb`, `pg_ctl`). Compila un harness contra el proyecto existente, **sin crear otro proyecto ni otro DbContext**. Arranca un PostgreSQL desechable en un directorio temporal con socket Unix privado y sin TCP; crea únicamente el esquema del modelo existente como fixture, ejecuta las pruebas y elimina sus propios datos. Este DDL de prueba **no es una migración ni inicialización de la base de la aplicación**. No lee `.env`, no usa claves de cookies reales ni modifica el servidor de desarrollo.
+
+Las comprobaciones abarcan los cuatro recursos con dos cookies autenticadas de prueba (identidades Dropbox/Microsoft simuladas), 201/200, persistencia real PostgreSQL, 401 sin sesión, 403 sin vínculo o usuario inactivo, 404 bidireccional entre usuarios, validación de relaciones/campos/importes, rechazo de `UsuarioId` enviado, CSRF, duplicados 409, no alteración de saldos y doce operaciones en OpenAPI/Scalar. **No se completó login interactivo real con los proveedores en esta prueba.**
+
+Para evidencias finales, con aplicaciones OAuth y base real configuradas, repetir en navegador/Scalar para **cada proveedor y cada recurso**: POST 201, GET lista 200, GET por ID 200; sin cookie, POST y ambos GET 401; con otra identidad/local usuario, GET del ID ajeno 404 y relación ajena en POST 400. Capturar también el duplicado 409 y la salida real de build. Comprobar las filas mediante un SELECT en PostgreSQL con una conexión local segura, sin capturar secretos o cookies.
 
 ## Documentación de contribución
 

@@ -54,17 +54,9 @@ public static class Dev3Authentication
             options.DefaultAuthenticateScheme = LocalScheme;
             options.DefaultSignInScheme = LocalScheme;
             options.DefaultChallengeScheme = LocalScheme;
-        }).AddCookie(LocalScheme, options =>
-        {
-            options.Cookie.Name = "__Host-Finanzas.Session";
-            options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            options.Cookie.SameSite = SameSiteMode.Lax;
-            options.LoginPath = LoginPath;
-            options.AccessDeniedPath = LoginPath;
-            options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-            options.SlidingExpiration = false;
         });
+
+        // Program.cs ya registra Cookies para todos los integrantes. No duplicarlo.
 
         // Una instalación sin secretos puede arrancar y mostrar la página de configuración.
         if (HasCredentials(dropbox))
