@@ -47,4 +47,36 @@ public class UsuarioController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<UsuarioResponseDto>> Update(Guid id, ActualizarUsuarioDto dto)
+    {
+        try
+        {
+            var actualizado = await _service.UpdateAsync(id, dto);
+            return actualizado is null ? NotFound() : Ok(actualizado);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        try
+        {
+            var eliminado = await _service.SoftDeleteAsync(id);
+            return eliminado ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
 }
