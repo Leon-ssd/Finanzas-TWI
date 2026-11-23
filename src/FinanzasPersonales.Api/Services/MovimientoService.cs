@@ -1,0 +1,151 @@
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace FinanzasPersonales.Api;
+
+public class MovimientoService
+{
+    private static readonly string[] TiposValidos = { "ingreso", "gasto" };
+    private readonly ApiDbContext _db;
+
+    public MovimientoService(ApiDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<List<MovimientoResponseDto>> GetAllByUsuarioAsync(
+        Guid usuarioId,
+        Guid? cuentaId = null,
+        Guid? categoriaId = null)
+    {
+        var query = _db.Movimientos
+            .AsNoTracking()
+            .Where(m => m.UsuarioId == usuarioId);
+
+        if (cuentaId.HasValue)
+            query = query.Where(m => m.CuentaId == cuentaId.Value);
+
+        if (categoriaId.HasValue)
+            query = query.Where(m => m.CategoriaId == categoriaId.Value);
+
+        return await query
+            .OrderByDescending(m => m.FechaMovimiento)
+            .ThenByDescending(m => m.FechaRegistro)
+            .Select(m => new MovimientoResponseDto
+            {
+                Id = m.Id,
+                UsuarioId = m.UsuarioId,
+                NombreUsuario = m.Usuario.Nombre,
+                CuentaId = m.CuentaId,
+                NombreCuenta = m.Cuenta.Nombre,
+                CategoriaId = m.CategoriaId,
+                NombreCategoria = m.Categoria.Nombre,
+                Tipo = m.Tipo,
+                Monto = m.Monto,
+                Concepto = m.Concepto,
+                FechaMovimiento = m.FechaMovimiento,
+                Notas = m.Notas,
+                FechaRegistro = m.FechaRegistro
+            })
+            .ToListAsync();
+    }
+
+    public async Task<MovimientoResponseDto?> GetByIdAsync(Guid id, Guid usuarioId)
+    {
+        return await _db.Movimientos
+            .AsNoTracking()
+            .Where(m => m.Id == id && m.UsuarioId == usuarioId)
+            .Select(m => new MovimientoResponseDto
+            {
+                Id = m.Id,
+                UsuarioId = m.UsuarioId,
+                NombreUsuario = m.Usuario.Nombre,
+                CuentaId = m.CuentaId,
+                NombreCuenta = m.Cuenta.Nombre,
+                CategoriaId = m.CategoriaId,
+                NombreCategoria = m.Categoria.Nombre,
+                Tipo = m.Tipo,
+                Monto = m.Monto,
+                Concepto = m.Concepto,
+                FechaMovimiento = m.FechaMovimiento,
+                Notas = m.Notas,
+                FechaRegistro = m.FechaRegistro
+            })
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<MovimientoResponseDto> CreateAsync(Guid usuarioId, CrearMovimientoDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Concepto))
+            throw new ArgumentException("El concepto del movimiento es obligatorio.");
+
+        var tipoNormalizado = dto.Tipo.Trim().ToLowerInvariant();
+        if (!TiposValidos.Contains(tipoNormalizado))
+            throw new ArgumentException("Tipo de movimiento inválido. Use: ingreso o gasto.");
+
+        if (dto.Monto <= 0)
+            throw new ArgumentException("El monto debe ser mayor que cero.");
+
+        var usuario = await _db.Usuarios
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == usuarioId);
+
+        if (usuario is null)
+            throw new ArgumentException("El usuario autenticado no existe.");
+
+        if (!usuario.Activo)
+            throw new ArgumentException("El usuario autenticado está inactivo.");
+
+        var cuenta = await _db.Cuentas
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == dto.CuentaId && c.UsuarioId == usuarioId);
+
+        if (cuenta is null)
+            throw new ArgumentException("La cuenta especificada no existe o no pertenece al usuario.");
+
+        if (!cuenta.Activa)
+            throw new ArgumentException("La cuenta está inactiva y no admite nuevos movimientos.");
+
+        var categoria = await _db.Categorias
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cat => cat.Id == dto.CategoriaId && cat.UsuarioId == usuarioId);
+
+        if (categoria is null)
+            throw new ArgumentException("La categoría especificada no existe o no pertenece al usuario.");
+
+        if (categoria.Tipo != tipoNormalizado)
+            throw new ArgumentException("El tipo del movimiento no coincide con el tipo de la categoría.");
+
+        var movimiento = new Movimiento
+        {
+            UsuarioId = usuarioId,
+            CuentaId = dto.CuentaId,
+            CategoriaId = dto.CategoriaId,
+            Tipo = tipoNormalizado,
+            Monto = dto.Monto,
+            Concepto = dto.Concepto.Trim(),
+            FechaMovimiento = dto.FechaMovimiento,
+            Notas = string.IsNullOrWhiteSpace(dto.Notas) ? null : dto.Notas.Trim(),
+            FechaRegistro = DateTimeOffset.UtcNow
+        };
+
+        _db.Movimientos.Add(movimiento);
+        await _db.SaveChangesAsync();
+
+        return new MovimientoResponseDto
+        {
+            Id = movimiento.Id,
+            UsuarioId = movimiento.UsuarioId,
+            NombreUsuario = usuario.Nombre,
+            CuentaId = movimiento.CuentaId,
+            NombreCuenta = cuenta.Nombre,
+            CategoriaId = movimiento.CategoriaId,
+            NombreCategoria = categoria.Nombre,
+            Tipo = movimiento.Tipo,
+            Monto = movimiento.Monto,
+            Concepto = movimiento.Concepto,
+            FechaMovimiento = movimiento.FechaMovimiento,
+            Notas = movimiento.Notas,
+            FechaRegistro = movimiento.FechaRegistro
+        };
+    }
+}
