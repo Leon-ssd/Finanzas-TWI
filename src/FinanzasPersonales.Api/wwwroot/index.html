@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finanzas Personales - Autenticación OAuth 2.0 (Integrante 2)</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --twitch-color: #9146ff;
+      --twitch-hover: #772ce8;
+      --spotify-color: #1db954;
+      --spotify-hover: #1aa34a;
+      --danger-color: #ef4444;
+      --danger-hover: #dc2626;
+      --border-color: #334155;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .container {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      width: 100%;
+      max-width: 520px;
+      padding: 2.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.5rem; }
+    p.subtitle { color: var(--text-muted); font-size: 0.95rem; }
+    
+    .buttons-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.85rem 1.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .btn-twitch {
+      background-color: var(--twitch-color);
+      color: #ffffff;
+    }
+    .btn-twitch:hover { background-color: var(--twitch-hover); }
+    .btn-spotify {
+      background-color: var(--spotify-color);
+      color: #ffffff;
+    }
+    .btn-spotify:hover { background-color: var(--spotify-hover); }
+    .btn-logout {
+      background-color: var(--danger-color);
+      color: #ffffff;
+      margin-top: 1rem;
+    }
+    .btn-logout:hover { background-color: var(--danger-hover); }
+
+    .identity-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .identity-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-authenticated { background-color: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .status-anonymous { background-color: #94a3b8; }
+    
+    .field {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+    }
+    .field:last-child { border-bottom: none; }
+    .field-label { color: var(--text-muted); }
+    .field-value { font-weight: 600; color: var(--text-main); word-break: break-all; text-align: right; }
+    
+    .endpoints-info {
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .endpoints-info a { color: var(--accent); text-decoration: none; }
+    .endpoints-info a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">Integrante 2</span>
+      <h1>Finanzas Personales API</h1>
+      <p class="subtitle">Autenticación OAuth 2.0 con Twitch y Spotify</p>
+    </div>
+
+    <div id="login-section" class="buttons-section">
+      <!-- Botón Twitch -->
+      <a href="/api/auth/twitch/login" class="btn btn-twitch">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+        </svg>
+        Iniciar sesión con Twitch
+      </a>
+
+      <!-- Botón Spotify -->
+      <a href="/api/auth/spotify/login" class="btn btn-spotify">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+        </svg>
+        Iniciar sesión con Spotify
+      </a>
+    </div>
+
+    <!-- Tarjeta de Identidad de Sesión -->
+    <div class="identity-card">
+      <h3>
+        <span id="status-indicator" class="status-dot status-anonymous"></span>
+        <span id="session-title">Estado de Sesión</span>
+      </h3>
+      
+      <div id="session-details">
+        <div class="field">
+          <span class="field-label">Estado</span>
+          <span id="field-status" class="field-value">Consultando...</span>
+        </div>
+        <div class="field" id="row-user-id" style="display:none;">
+          <span class="field-label">ID Usuario (UUID)</span>
+          <span id="field-user-id" class="field-value">-</span>
+        </div>
+        <div class="field" id="row-name" style="display:none;">
+          <span class="field-label">Nombre</span>
+          <span id="field-name" class="field-value">-</span>
+        </div>
+        <div class="field" id="row-email" style="display:none;">
+          <span class="field-label">Email</span>
+          <span id="field-email" class="field-value">-</span>
+        </div>
+        <div class="field" id="row-provider" style="display:none;">
+          <span class="field-label">Proveedor</span>
+          <span id="field-provider" class="field-value">-</span>
+        </div>
+      </div>
+
+      <div id="logout-container" style="display:none;">
+        <button onclick="logout()" class="btn btn-logout">Cerrar Sesión</button>
+      </div>
+    </div>
+
+    <div class="endpoints-info">
+      <p>Endpoints API protegidos: <a href="/openapi/v1.json" target="_blank">OpenAPI Specs</a> | <a href="/api/auth/me">Ver /api/auth/me</a></p>
+    </div>
+  </div>
+
+  <script>
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+
+        const indicator = document.getElementById('status-indicator');
+        const fieldStatus = document.getElementById('field-status');
+        const rowUserId = document.getElementById('row-user-id');
+        const rowName = document.getElementById('row-name');
+        const rowEmail = document.getElementById('row-email');
+        const rowProvider = document.getElementById('row-provider');
+        const logoutContainer = document.getElementById('logout-container');
+
+        if (data.isAuthenticated) {
+          indicator.className = 'status-dot status-authenticated';
+          fieldStatus.textContent = 'Autenticado';
+          fieldStatus.style.color = '#22c55e';
+
+          document.getElementById('field-user-id').textContent = data.usuarioId || '-';
+          document.getElementById('field-name').textContent = data.nombre || '-';
+          document.getElementById('field-email').textContent = data.email || '-';
+          document.getElementById('field-provider').textContent = data.proveedor || '-';
+
+          rowUserId.style.display = 'flex';
+          rowName.style.display = 'flex';
+          rowEmail.style.display = 'flex';
+          rowProvider.style.display = 'flex';
+          logoutContainer.style.display = 'block';
+        } else {
+          indicator.className = 'status-dot status-anonymous';
+          fieldStatus.textContent = 'Sin sesión activa';
+          fieldStatus.style.color = '#94a3b8';
+
+          rowUserId.style.display = 'none';
+          rowName.style.display = 'none';
+          rowEmail.style.display = 'none';
+          rowProvider.style.display = 'none';
+          logoutContainer.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Error al consultar sesión:', err);
+        document.getElementById('field-status').textContent = 'Error de conexión';
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST', headers: { 'Accept': 'application/json' } });
+      window.location.reload();
+    }
+
+    // Verificar sesión al cargar
+    checkSession();
+  </script>
+</body>
+</html>
