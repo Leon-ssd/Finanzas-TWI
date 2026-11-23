@@ -8,7 +8,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OAuth;
-using Microsoft.EntityFrameworkCore;
 using FinanzasPersonales.Api.Data;
 using FinanzasPersonales.Api.Services;
 

@@ -1,6 +1,111 @@
 @FinanzasPersonales.Api_HostAddress = http://localhost:5257
 
-GET {{FinanzasPersonales.Api_HostAddress}}/weatherforecast/
+### ----------------------------------------------------------------------------
+### 1. PRUEBAS DE AUTORIZACIÓN: RECHAZO SIN SESIÓN ACTIVA (401 UNAUTHORIZED)
+### ----------------------------------------------------------------------------
+
+### 1.1 Listar transferencias sin sesión (Debe retornar 401 Unauthorized)
+GET {{FinanzasPersonales.Api_HostAddress}}/api/transferencias
 Accept: application/json
 
-###
+### 1.2 Crear etiqueta sin sesión (Debe retornar 401 Unauthorized)
+POST {{FinanzasPersonales.Api_HostAddress}}/api/etiquetas
+Content-Type: application/json
+Accept: application/json
+
+{
+  "nombre": "Gastos Viaje",
+  "colorHex": "#FF5733"
+}
+
+### 1.3 Obtener preferencias sin sesión (Debe retornar 401 Unauthorized)
+GET {{FinanzasPersonales.Api_HostAddress}}/api/preferencias-usuario
+Accept: application/json
+
+### 1.4 Listar movimiento-etiquetas sin sesión (Debe retornar 401 Unauthorized)
+GET {{FinanzasPersonales.Api_HostAddress}}/api/movimiento-etiquetas
+Accept: application/json
+
+
+### ----------------------------------------------------------------------------
+### 2. ESTADO DE AUTENTICACIÓN
+### ----------------------------------------------------------------------------
+
+### Consultar identidad activa (/api/auth/me)
+GET {{FinanzasPersonales.Api_HostAddress}}/api/auth/me
+Accept: application/json
+
+
+### ----------------------------------------------------------------------------
+### 3. PRUEBAS AUTENTICADAS (Requiere cookie FinanzasPersonales.Auth obtenida vía Twitch o Spotify)
+### ----------------------------------------------------------------------------
+
+### 3.1 ETIQUETAS: Crear etiqueta (POST)
+POST {{FinanzasPersonales.Api_HostAddress}}/api/etiquetas
+Content-Type: application/json
+Accept: application/json
+
+{
+  "nombre": "Servicios Básicos",
+  "colorHex": "#3498DB"
+}
+
+### 3.2 ETIQUETAS: Listar etiquetas del usuario (GET)
+GET {{FinanzasPersonales.Api_HostAddress}}/api/etiquetas
+Accept: application/json
+
+### 3.3 ETIQUETAS: Obtener etiqueta por ID (GET)
+# Reemplazar con el GUID devuelto por la creación
+GET {{FinanzasPersonales.Api_HostAddress}}/api/etiquetas/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+
+### 3.4 PREFERENCIAS: Crear preferencias (POST)
+POST {{FinanzasPersonales.Api_HostAddress}}/api/preferencias-usuario
+Content-Type: application/json
+Accept: application/json
+
+{
+  "monedaPrincipal": "BOB",
+  "diaInicioMes": 1,
+  "alertaLimitePorcentaje": 80,
+  "temaUi": "oscuro"
+}
+
+### 3.5 PREFERENCIAS: Consultar preferencias (GET)
+GET {{FinanzasPersonales.Api_HostAddress}}/api/preferencias-usuario
+Accept: application/json
+
+
+### 3.6 TRANSFERENCIAS: Registrar transferencia entre cuentas (POST)
+POST {{FinanzasPersonales.Api_HostAddress}}/api/transferencias
+Content-Type: application/json
+Accept: application/json
+
+{
+  "cuentaOrigenId": "11111111-1111-1111-1111-111111111111",
+  "cuentaDestinoId": "22222222-2222-2222-2222-222222222222",
+  "monto": 250.00,
+  "comision": 5.00,
+  "fechaTransferencia": "2026-11-23",
+  "concepto": "Traspaso de fondos a ahorro"
+}
+
+### 3.7 TRANSFERENCIAS: Listar transferencias del usuario (GET)
+GET {{FinanzasPersonales.Api_HostAddress}}/api/transferencias
+Accept: application/json
+
+
+### 3.8 MOVIMIENTO-ETIQUETA: Asociar etiqueta a un movimiento (POST)
+POST {{FinanzasPersonales.Api_HostAddress}}/api/movimiento-etiquetas
+Content-Type: application/json
+Accept: application/json
+
+{
+  "movimientoId": "33333333-3333-3333-3333-333333333333",
+  "etiquetaId": "44444444-4444-4444-4444-444444444444"
+}
+
+### 3.9 MOVIMIENTO-ETIQUETA: Listar asociaciones (GET)
+GET {{FinanzasPersonales.Api_HostAddress}}/api/movimiento-etiquetas
+Accept: application/json

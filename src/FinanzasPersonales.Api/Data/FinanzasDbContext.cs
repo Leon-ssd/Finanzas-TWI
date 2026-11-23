@@ -1,6 +1,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using FinanzasPersonales.Api.Models;
+using FinanzasPersonales.Api.Data.Configurations;
 
 namespace FinanzasPersonales.Api.Data;
 
@@ -23,18 +24,9 @@ public class FinanzasDbContext : DbContext
     public DbSet<MovimientoRecurrente> MovimientosRecurrentes => Set<MovimientoRecurrente>();
     public DbSet<RecordatorioPago> RecordatoriosPago => Set<RecordatorioPago>();
 
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(FinanzasDbContext).Assembly);
-
-        // Registrar las entidades/configuraciones reales del líder ANTES de este bloque.
-        // Las configuraciones fallan explícitamente si falta una entidad principal.
-        modelBuilder.ApplyConfiguration(new PresupuestoMensualConfiguration());
-        modelBuilder.ApplyConfiguration(new MetaAhorroConfiguration());
-        modelBuilder.ApplyConfiguration(new MovimientoRecurrenteConfiguration());
-        modelBuilder.ApplyConfiguration(new RecordatorioPagoConfiguration());
-
     }
 }
