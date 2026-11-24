@@ -1,3 +1,7 @@
+
+"""Compatibilidad con el comando anterior: ejecuta la batería común de los seis proveedores."""
+from verify_auth import main
+
 """Prueba HTTPS local, sin login real ni canje de códigos. Requiere API compilada.
 
 Ejecutar desde cualquier directorio: python3 tests/verify_dev3_auth.py
@@ -143,5 +147,4 @@ def verify(configured):
 
 
 if __name__ == "__main__":
-    verify(False)
-    verify(True)
+    main()
